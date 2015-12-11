@@ -40,7 +40,8 @@ print(patientData.columns.values)
 admitDates = pd.unique(patientData.Admission_date.ravel())
 #get list of rows where event = discharge. Each row corresponds to a stay
 hospStays = patientData.loc[patientData.Event == "Discharge"]
-hospStaysUpdated = np.zeros((len(hospStays.index)),dtype=object)
+#hospStaysUpdated = np.zeros((len(hospStays.index)),dtype=object)
+hospStaysUpdated = np.zeros((len(hospStays.index),len(uniqueTests)*3+3),dtype=object)#3 details for each test plus admit discharge
 labsAll = []
 
 
@@ -55,6 +56,12 @@ for indexStay, rowStay in hospStays.iterrows():
     #     print(counterRow,rowStay.RUID)
     #     continue
     # print(counterRow,rowStay.RUID)
+
+    #test pickle - break after 20 rows
+    # if counterRow==20:
+    #     break
+
+
     if counterRow%100 == 0:
         print(counterRow)
     if counterRow > 0 and lastID != rowStay.RUID:
@@ -63,8 +70,12 @@ for indexStay, rowStay in hospStays.iterrows():
     #flag to see if we have found the id while iterating through the list
     foundPatient = False
     #convert to datetime once for each stay
-    admit = datetime.strptime(rowStay.Admission_date,'%m/%d/%Y')
-    discharge = datetime.strptime(rowStay.DISCHARGE_DATE,'%m/%d/%Y')
+    try:
+        admit = datetime.strptime(rowStay.Admission_date,'%m/%d/%Y')
+        discharge = datetime.strptime(rowStay.DISCHARGE_DATE,'%m/%d/%Y')
+    except TypeError:
+        print("Error in row " + str(counterRow))
+        continue
     # admit = rowStay.Admission_date
     # discharge = rowStay.DISCHARGE_DATE
     #print (admit)
@@ -140,7 +151,7 @@ for indexStay, rowStay in hospStays.iterrows():
                 labs[counterLabType] = labDataSummary
             temp = [[rowStay.RUID],[admit],[discharge]]
             temp.extend(labs)
-            hospStaysUpdated[counterRow]= list(chain.from_iterable(temp))#flatten the list
+            hospStaysUpdated[counterRow,:]= np.array(list(chain.from_iterable(temp)))#flatten the list
             break
 
         elif rowStay.RUID < labDataNP[counter][0]:
@@ -153,8 +164,32 @@ npHospStays = np.array(hospStaysUpdated)
 np.save('hospStaysLabs',npHospStays)
 
 
+#to store this as a dataframe, we would need the column names
+#but dicts are unordered. Create a list and order them by values, not keys
+import operator
+import itertools
+sortedColumns = sorted(testsDict.items(),key=operator.itemgetter(1))
+columnNames = [['RUID'],['Admission_date'],['DISCHARGE_DATE']]
+sortedColumns = [[str(element[0])+'_Start',str(element[0])+'_End',str(element[0])+'_Mean'] for element in sortedColumns]
+columnNames.extend(sortedColumns)
+columnNames = list(itertools.chain.from_iterable(columnNames))
+
+#keep adding columns to the original dataframe for hospStays
+for counter in range(len(columnNames)):
+    #hospStays[columnNames[counter]] = pd.series(np.zeros(hospStays.shape[0]),index = hospStays.index)
+    hospStays[columnNames[counter]] = pd.Series(hospStaysUpdated[:,counter],index = hospStays.index)
+
+hospStays.to_pickle("dataPickle")
 
 
+# #create a data frame with this object
+# df = pd.DataFrame(index=range(len(hospStaysUpdated)+3), columns=columnNames)
+# for counter in range(len(hospStaysUpdated)):
+#     print(counter)
+#     df.iloc[counter] = hospStaysUpdated[counter]
+#
+# #pickle the data frame
+# df.to_pickle("dataPickle")
 
 
 
