@@ -11,13 +11,11 @@ import sys
 
 
 labData = pd.read_csv("/Users/ayanmukhopadhyay/Documents/Vanderbilt/AdvancedStatisticalComputing/Project/Data/FONNESBECK_LAB_20151202.csv",quoting=csv.QUOTE_NONE)
-# labData.Lab_date = pd.to_datetime(labData.Lab_date)
-# print(labData.head(10))
 print(labData.columns.values)
 labDataNP = labData.values
 uniqueTests = pd.unique(labData.Lab_name.ravel())
 uniqueTestsVal = uniqueTests
-#print(len(uniqueTests))
+
 
 testsDict = {}
 for counter in range(len(uniqueTests)):
@@ -25,22 +23,12 @@ for counter in range(len(uniqueTests)):
 
 patientData = pd.read_csv("/Users/ayanmukhopadhyay/Documents/Vanderbilt/AdvancedStatisticalComputing/Project/Data/FONNESBECK_ADT_20151202.csv",quoting=csv.QUOTE_NONE,encoding='cp1252')
 print(patientData.columns.values)
-#patientData['Admission_date'] = pd.to_datetime(patientData['Admission_date'])
-#patientData['DISCHARGE_DATE'] = pd.to_datetime(patientData['DISCHARGE_DATE'])
-
-#
-# total = pd.merge(labData,patientData,how='inner',on='RUID')
-#
-# #print(total.head())
-#
-# #create lab reports based on per stay at the hospital
-# npTotal = total.values #create numpy array. Iterating over rows would be faster
 
 #get admission dates - each should be later a unique identifier (combined with patientID) for a row
 admitDates = pd.unique(patientData.Admission_date.ravel())
 #get list of rows where event = discharge. Each row corresponds to a stay
 hospStays = patientData.loc[patientData.Event == "Discharge"]
-#hospStaysUpdated = np.zeros((len(hospStays.index)),dtype=object)
+
 hospStaysUpdated = np.zeros((len(hospStays.index),len(uniqueTests)*3+3),dtype=object)#3 details for each test plus admit discharge
 labsAll = []
 
@@ -51,17 +39,6 @@ counterEnd = 0
 #for each stay, get details about lab
 counterRow = 0
 for indexStay, rowStay in hospStays.iterrows():
-    # if counterRow < 3410:
-    #     counterRow+=1
-    #     print(counterRow,rowStay.RUID)
-    #     continue
-    # print(counterRow,rowStay.RUID)
-
-    #test pickle - break after 20 rows
-    # if counterRow==20:
-    #     break
-
-
     if counterRow%100 == 0:
         print(counterRow)
     if counterRow > 0 and lastID != rowStay.RUID:
@@ -76,17 +53,10 @@ for indexStay, rowStay in hospStays.iterrows():
     except TypeError:
         print("Error in row " + str(counterRow))
         continue
-    # admit = rowStay.Admission_date
-    # discharge = rowStay.DISCHARGE_DATE
-    #print (admit)
-    #print (discharge)
-    #print (rowStay.RUID)
+
     labs = np.zeros(len(uniqueTests),dtype=object)
     labs[:] = -1
-    #create a dataFrame for each stay. This is temporary. For each stay, let us have a data Frame that keeps each event
-    #as a row and tests in columns. Then, we can find the mean and the median and discard the rest
-    tempLabReportsPerStay = pd.DataFrame
-
+    #iterate over the lab data
     for counter in range(counterStart,len(labDataNP)):
         if rowStay.RUID == labDataNP[counter][0]:
             foundPatient = True
@@ -138,9 +108,6 @@ for indexStay, rowStay in hospStays.iterrows():
                             try:
                                 labMean = sum(labs[counterLabType])/len(labs[counterLabType])
                             except TypeError:
-                                #print(labs[counterLabType])
-                                #print(counterLabType)
-                                #print("Baal Chire Aati Badh")
                                 sys.exit()
 
                         else:
@@ -181,15 +148,6 @@ for counter in range(len(columnNames)):
 
 hospStays.to_pickle("dataPickle")
 
-
-# #create a data frame with this object
-# df = pd.DataFrame(index=range(len(hospStaysUpdated)+3), columns=columnNames)
-# for counter in range(len(hospStaysUpdated)):
-#     print(counter)
-#     df.iloc[counter] = hospStaysUpdated[counter]
-#
-# #pickle the data frame
-# df.to_pickle("dataPickle")
 
 
 
